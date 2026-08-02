@@ -1,10 +1,10 @@
-import AuthCard from "@/components/auth/AuthCard";
+import LoginCard from "@/components/auth/LoginCard";
 import LoginForm from "@/components/auth/LoginForm";
 
 export default function LoginPage() {
   return (
-    <AuthCard>
+    <LoginCard>
       <LoginForm />
-    </AuthCard>
+    </LoginCard>
   );
-}
+}

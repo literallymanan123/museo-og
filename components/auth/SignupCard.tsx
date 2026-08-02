@@ -5,24 +5,46 @@ import Ferrofluid from "./Ferrofluid";
 import CircularGallery from "./CircularGallery";
 import MuseoLogo from "@/components/brand/MuseoLogo";
 
-type AuthCardProps = {
+type SignupCardProps = {
   children: React.ReactNode;
 };
 
-export default function AuthCard({
-  children,
-}: AuthCardProps) {
-  return (
-    <main className="relative min-h-screen overflow-hidden px-6 py-8 text-white">
+const GALLERY_IMAGES = [
+  {
+    image:
+      "https://images.unsplash.com/photo-1549490349-8643362247b5?w=900&q=80",
+  },
+  {
+    image:
+      "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=900&q=80",
+  },
+  {
+    image:
+      "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=900&q=80",
+  },
+  {
+    image:
+      "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=900&q=80",
+  },
+  {
+    image:
+      "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=900&q=80",
+  },
+];
 
-      {/* Background */}
+/**
+ * SignupCard — independent layout for the signup page.
+ * Wider card (max-w-[820px]) and a taller gallery panel (min-h-[560px])
+ * to comfortably accommodate the extra form fields.
+ * No dimensions are shared with LoginCard.
+ */
+export default function SignupCard({ children }: SignupCardProps) {
+  return (
+    <main className="relative min-h-screen overflow-hidden px-6 py-10 text-white">
+      {/* Animated background */}
       <div className="absolute inset-0 z-0">
         <Ferrofluid
-          colors={[
-            "#ffffff",
-            "#ffffff",
-            "#ffffff",
-          ]}
+          colors={["#ffffff", "#ffffff", "#ffffff"]}
           speed={0.5}
           scale={1}
           turbulence={1}
@@ -53,7 +75,7 @@ export default function AuthCard({
         "
       />
 
-      {/* Card Wrapper */}
+      {/* Centering wrapper */}
       <div
         className="
           pointer-events-none
@@ -63,29 +85,19 @@ export default function AuthCard({
           min-h-screen
           items-center
           justify-center
+          py-20
         "
       >
         <motion.div
-          initial={{
-            opacity: 0,
-            y: 24,
-            scale: 0.98,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-            scale: 1,
-          }}
-          transition={{
-            duration: 0.8,
-            ease: [0.22, 1, 0.36, 1],
-          }}
+          initial={{ opacity: 0, y: 24, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           className="
             pointer-events-auto
             relative
             flex
             w-full
-            max-w-[750px]
+            max-w-[820px]
             overflow-hidden
             rounded-[36px]
             border
@@ -97,8 +109,7 @@ export default function AuthCard({
             backdrop-saturate-[160%]
           "
         >
-
-          {/* Glass Edge Highlight */}
+          {/* Glass edge highlight */}
           <div
             className="
               pointer-events-none
@@ -112,7 +123,7 @@ export default function AuthCard({
             "
           />
 
-          {/* Top Glass Reflection */}
+          {/* Top glass reflection */}
           <div
             className="
               pointer-events-none
@@ -130,13 +141,14 @@ export default function AuthCard({
             "
           />
 
-          {/* LEFT GALLERY INSET PANEL */}
+          {/* LEFT gallery panel — taller to match signup form */}
           <div
             className="
               relative
               hidden
-              h-[560px]
-              w-[46%]
+              min-h-[560px]
+              w-[42%]
+              self-stretch
               overflow-hidden
               rounded-[26px]
               border
@@ -148,31 +160,10 @@ export default function AuthCard({
             <CircularGallery
               bend={1.8}
               autoSpeed={0.012}
-              items={[
-                {
-                  image:
-                    "https://images.unsplash.com/photo-1549490349-8643362247b5?w=900&q=80",
-                },
-                {
-                  image:
-                    "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=900&q=80",
-                },
-                {
-                  image:
-                    "https://images.unsplash.com/photo-1577083552431-6e5fd01aa342?w=900&q=80",
-                },
-                {
-                  image:
-                    "https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=900&q=80",
-                },
-                {
-                  image:
-                    "https://images.unsplash.com/photo-1561214115-f2f134cc4912?w=900&q=80",
-                },
-              ]}
+              items={GALLERY_IMAGES}
             />
 
-            {/* Subtle Inner Vignette */}
+            {/* Inner vignette */}
             <div
               className="
                 pointer-events-none
@@ -184,28 +175,23 @@ export default function AuthCard({
             />
           </div>
 
-          {/* RIGHT FORM */}
+          {/* RIGHT form — grows to content */}
           <div
             className="
               relative
               flex
-              h-[436px]
               w-full
               items-center
               justify-center
               px-10
-              py-8
-              md:w-[54%]
+              py-10
+              md:w-[58%]
             "
           >
-            <div className="w-full max-w-[390px]">
-              {children}
-            </div>
+            <div className="w-full max-w-[380px]">{children}</div>
           </div>
-
         </motion.div>
       </div>
-
     </main>
   );
 }

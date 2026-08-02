@@ -1,3 +1,4 @@
+import path from "node:path";
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({
@@ -8,6 +9,6 @@ export default defineConfig({
   },
 
   datasource: {
-    url: process.env.DATABASE_URL!,
+    url: `file:${path.join(process.cwd(), "prisma", "dev.db")}`,
   },
 });

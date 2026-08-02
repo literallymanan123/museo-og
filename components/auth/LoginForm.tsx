@@ -1,132 +1,151 @@
 "use client";
 
-import { Eye, EyeOff, UserRound, LockKeyhole } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, Mail } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { FormEvent, useState } from "react";
+import AuthInput from "./AuthInput";
+import AuthButton from "./AuthButton";
+
+type FormErrors = {
+  email?: string;
+  password?: string;
+  form?: string;
+};
 
 export default function LoginForm() {
+  const router = useRouter();
+
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = event.target;
+    setFormData((previous) => ({ ...previous, [name]: value }));
+    // Clear the field error as the user types
+    if (errors[name as keyof FormErrors]) {
+      setErrors((previous) => ({ ...previous, [name]: undefined }));
+    }
+  }
+
+  function validate(): FormErrors {
+    const newErrors: FormErrors = {};
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Please enter your email.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Please enter your password.";
+    }
+
+    return newErrors;
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setErrors({});
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setErrors({ form: "Incorrect email or password." });
+        } else if (response.status === 400) {
+          setErrors({ form: data.message ?? "Invalid request." });
+        } else {
+          setErrors({
+            form:
+              data.message ??
+              "Something went wrong. Please try again.",
+          });
+        }
+        return;
+      }
+
+      router.replace("/feed");
+    } catch {
+      setErrors({
+        form: "Unable to connect. Please check your connection and try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleContinueAsGuest() {
+    sessionStorage.setItem("guest", "true");
+    router.replace("/feed");
+  }
 
   return (
     <div className="text-white">
-
       {/* Heading */}
-      <div className="mb-8">
-        <h1 className="text-center text-[32px] font-bold tracking-[-0.04em]">
-          login.
+      <div className="mb-8 text-center">
+        <h1 className="text-[32px] font-bold tracking-[-0.04em]">
+          welcome back.
         </h1>
+        <p className="mt-2 text-[14px] text-white/50">
+          Sign in to your Museo account
+        </p>
       </div>
 
-      <form className="space-y-6">
-
-        {/* Username */}
-        <div>
-          <label className="mb-2 block text-[14px] font-medium text-white/80">
-            Username
-          </label>
-
-          <div
-            className="
-              group
-              relative
-              flex
-              items-center
-              rounded-[13px]
-              border
-              border-white/[0.16]
-              bg-white/[0.055]
-              transition-all
-              duration-300
-              focus-within:border-[#ff806d]/70
-              focus-within:bg-white/[0.08]
-              focus-within:shadow-[0_0_25px_rgba(255,128,109,0.08)]
-            "
-          >
-            <UserRound
-              size={18}
-              strokeWidth={1.7}
-              className="
-                ml-4
-                shrink-0
-                text-white/35
-                transition-colors
-                duration-300
-                group-focus-within:text-[#ff806d]
-              "
-            />
-
-            <input
-              type="text"
-              placeholder="Enter your username"
-              className="
-                w-full
-                bg-transparent
-                px-3
-                py-[15px]
-                text-[15px]
-                text-white
-                outline-none
-                placeholder:text-white/35
-              "
-            />
-          </div>
-        </div>
+      <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        {/* Email */}
+        <AuthInput
+          id="login-email"
+          label="Email"
+          name="email"
+          type="email"
+          placeholder="Enter your email"
+          value={formData.email}
+          onChange={handleChange}
+          icon={Mail}
+          autoComplete="email"
+          error={errors.email}
+        />
 
         {/* Password */}
-        <div>
-          <label className="mb-2 block text-[14px] font-medium text-white/80">
-            Password
-          </label>
-
-          <div
-            className="
-              group
-              relative
-              flex
-              items-center
-              rounded-[13px]
-              border
-              border-white/[0.16]
-              bg-white/[0.055]
-              transition-all
-              duration-300
-              focus-within:border-[#ff806d]/70
-              focus-within:bg-white/[0.08]
-              focus-within:shadow-[0_0_25px_rgba(255,128,109,0.08)]
-            "
-          >
-            <LockKeyhole
-              size={18}
-              strokeWidth={1.7}
-              className="
-                ml-4
-                shrink-0
-                text-white/35
-                transition-colors
-                duration-300
-                group-focus-within:text-[#ff806d]
-              "
-            />
-
-            <input
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
-              className="
-                w-full
-                bg-transparent
-                px-3
-                py-[15px]
-                pr-12
-                text-[15px]
-                text-white
-                outline-none
-                placeholder:text-white/35
-              "
-            />
-
+        <AuthInput
+          id="login-password"
+          label="Password"
+          name="password"
+          type={showPassword ? "text" : "password"}
+          placeholder="Enter your password"
+          value={formData.password}
+          onChange={handleChange}
+          icon={LockKeyhole}
+          autoComplete="current-password"
+          error={errors.password}
+          rightElement={
             <button
               type="button"
-              onClick={() => setShowPassword((previous) => !previous)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword((prev) => !prev)}
               className="
                 absolute
                 right-4
@@ -142,104 +161,64 @@ export default function LoginForm() {
                 <Eye size={18} strokeWidth={1.6} />
               )}
             </button>
+          }
+        />
+
+        {/* Form-level error banner */}
+        {errors.form && (
+          <div
+            role="alert"
+            className="
+              rounded-[10px]
+              border
+              border-red-400/30
+              bg-red-400/[0.08]
+              px-4
+              py-3
+              text-center
+              text-[13px]
+              text-red-400
+            "
+          >
+            {errors.form}
           </div>
+        )}
+
+        {/* Forgot password */}
+        <div className="flex justify-end">
+          <Link
+            href="/forgot-password"
+            className="text-[13px] text-[#ff806d] transition duration-300 hover:text-[#ff9b8c]"
+          >
+            Forgot password?
+          </Link>
         </div>
 
-        {/* Remember Me */}
-        <label className="flex cursor-pointer items-center gap-3 text-[14px] font-medium text-white/75">
-          <input
-            type="checkbox"
-            className="
-              h-[18px]
-              w-[18px]
-              cursor-pointer
-              appearance-none
-              rounded-[5px]
-              border
-              border-white/30
-              bg-white/[0.04]
-              transition
-              checked:border-[#ff806d]
-              checked:bg-[#ff806d]
-            "
-          />
+        {/* Sign In */}
+        <AuthButton type="submit" disabled={isLoading}>
+          {isLoading ? "Signing in…" : "Sign In"}
+        </AuthButton>
 
-          Remember Me
-        </label>
-
-        {/* Login Button */}
-        <button
-          type="submit"
-          className="
-            group
-            relative
-            w-full
-            overflow-hidden
-            rounded-[14px]
-            bg-black
-            py-[14px]
-            text-[16px]
-            font-bold
-            text-white
-            transition-all
-            duration-500
-            ease-out
-            hover:bg-[#ff806d]
-            hover:shadow-[0_8px_30px_rgba(255,128,109,0.28)]
-            active:scale-[0.985]
-          "
+        {/* Continue as Guest */}
+        <AuthButton
+          type="button"
+          variant="ghost"
+          onClick={handleContinueAsGuest}
         >
-          <span className="relative z-10 transition-colors duration-500">
-            Login
-          </span>
-
-          {/* Subtle light sweep */}
-          <span
-            className="
-              pointer-events-none
-              absolute
-              -left-[100%]
-              top-0
-              h-full
-              w-[60%]
-              rotate-[15deg]
-              bg-white/[0.12]
-              blur-xl
-              transition-all
-              duration-700
-              group-hover:left-[120%]
-            "
-          />
-        </button>
+          Continue as Guest
+        </AuthButton>
       </form>
 
-      {/* Bottom Links */}
-      <div className="mt-8 flex items-center justify-between text-[14px] font-medium">
-        <Link
-          href="/forgot-password"
-          className="
-            text-[#ff806d]
-            transition
-            duration-300
-            hover:text-[#ff9b8c]
-          "
-        >
-          Forgot Password?
-        </Link>
-
+      {/* Sign Up link */}
+      <p className="mt-6 text-center text-[14px] font-medium">
+        <span className="text-white/50">Don&apos;t have an account? </span>
         <Link
           href="/signup"
-          className="
-            text-[#ff806d]
-            transition
-            duration-300
-            hover:text-[#ff9b8c]
-          "
+          className="text-[#ff806d] transition duration-300 hover:text-[#ff9b8c]"
         >
-          New Account?
+          Sign Up
         </Link>
-      </div>
-
+      </p>
     </div>
   );
 }

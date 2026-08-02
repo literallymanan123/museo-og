@@ -10,21 +10,25 @@ import {
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import AuthInput from "./AuthInput";
+import AuthButton from "./AuthButton";
+
+type FormErrors = {
+  username?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  form?: string;
+};
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SignupForm() {
   const router = useRouter();
 
-  const [showPassword, setShowPassword] =
-    useState(false);
-
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
-
-  const [isLoading, setIsLoading] =
-    useState(false);
-
-  const [error, setError] =
-    useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     username: "",
@@ -33,52 +37,91 @@ export default function SignupForm() {
     confirmPassword: "",
   });
 
-  function handleChange(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
-    const {
-      name,
-      value,
-    } = event.target;
+  const [errors, setErrors] = useState<FormErrors>({});
 
-    setFormData((previous) => ({
-      ...previous,
-      [name]: value,
-    }));
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const { name, value } = event.target;
+    setFormData((previous) => ({ ...previous, [name]: value }));
+    // Clear the field error as the user types
+    if (errors[name as keyof FormErrors]) {
+      setErrors((previous) => ({ ...previous, [name]: undefined }));
+    }
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  function validate(): FormErrors {
+    const newErrors: FormErrors = {};
+
+    if (!formData.username.trim()) {
+      newErrors.username = "Username is required.";
+    } else if (formData.username.trim().length < 3) {
+      newErrors.username = "Username must be at least 3 characters.";
+    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
+      newErrors.username =
+        "Username can only contain letters, numbers and underscores.";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required.";
+    } else if (!EMAIL_REGEX.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Password is required.";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters.";
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password.";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match.";
+    }
+
+    return newErrors;
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setError("");
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setErrors({});
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        "/api/auth/signup",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message);
+        // Map server field hints back to the relevant input
+        if (data.field === "username") {
+          setErrors({ username: data.message });
+        } else if (data.field === "email") {
+          setErrors({ email: data.message });
+        } else {
+          setErrors({
+            form: data.message ?? "Something went wrong. Please try again.",
+          });
+        }
         return;
       }
 
-      router.push("/login");
+      // Success — redirect to login with a success hint
+      router.replace("/feed");
     } catch {
-      setError(
-        "Unable to create account. Please try again."
-      );
+      setErrors({
+        form: "Unable to create account. Please check your connection and try again.",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -86,204 +129,62 @@ export default function SignupForm() {
 
   return (
     <div className="text-white">
-
       {/* Heading */}
-      <div className="mb-7">
-        <h1 className="text-center text-[32px] font-bold tracking-[-0.04em]">
-          sign up.
+      <div className="mb-7 text-center">
+        <h1 className="text-[32px] font-bold tracking-[-0.04em]">
+          create account.
         </h1>
-
-        <p className="mt-2 text-center text-[14px] text-white/45">
-          Create your Museo account
+        <p className="mt-2 text-[14px] text-white/50">
+          Join Museo and explore art
         </p>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-4"
-      >
-
+      <form onSubmit={handleSubmit} noValidate className="space-y-4">
         {/* Username */}
-        <div>
-          <label className="mb-2 block text-[14px] font-medium text-white/80">
-            Username
-          </label>
-
-          <div
-            className="
-              group
-              relative
-              flex
-              items-center
-              rounded-[13px]
-              border
-              border-white/[0.16]
-              bg-white/[0.055]
-              transition-all
-              duration-300
-              focus-within:border-[#ff806d]/70
-              focus-within:bg-white/[0.08]
-              focus-within:shadow-[0_0_25px_rgba(255,128,109,0.08)]
-            "
-          >
-            <UserRound
-              size={18}
-              strokeWidth={1.7}
-              className="
-                ml-4
-                shrink-0
-                text-white/35
-                transition-colors
-                duration-300
-                group-focus-within:text-[#ff806d]
-              "
-            />
-
-            <input
-              name="username"
-              type="text"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder="Choose a username"
-              required
-              className="
-                w-full
-                bg-transparent
-                px-3
-                py-[13px]
-                text-[15px]
-                text-white
-                outline-none
-                placeholder:text-white/35
-              "
-            />
-          </div>
-        </div>
+        <AuthInput
+          id="signup-username"
+          label="Username"
+          name="username"
+          type="text"
+          placeholder="Choose a username"
+          value={formData.username}
+          onChange={handleChange}
+          icon={UserRound}
+          autoComplete="username"
+          error={errors.username}
+        />
 
         {/* Email */}
-        <div>
-          <label className="mb-2 block text-[14px] font-medium text-white/80">
-            Email
-          </label>
-
-          <div
-            className="
-              group
-              relative
-              flex
-              items-center
-              rounded-[13px]
-              border
-              border-white/[0.16]
-              bg-white/[0.055]
-              transition-all
-              duration-300
-              focus-within:border-[#ff806d]/70
-              focus-within:bg-white/[0.08]
-              focus-within:shadow-[0_0_25px_rgba(255,128,109,0.08)]
-            "
-          >
-            <Mail
-              size={18}
-              strokeWidth={1.7}
-              className="
-                ml-4
-                shrink-0
-                text-white/35
-                transition-colors
-                duration-300
-                group-focus-within:text-[#ff806d]
-              "
-            />
-
-            <input
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              required
-              className="
-                w-full
-                bg-transparent
-                px-3
-                py-[13px]
-                text-[15px]
-                text-white
-                outline-none
-                placeholder:text-white/35
-              "
-            />
-          </div>
-        </div>
+        <AuthInput
+          id="signup-email"
+          label="Email"
+          name="email"
+          type="email"
+          placeholder="Enter your email"
+          value={formData.email}
+          onChange={handleChange}
+          icon={Mail}
+          autoComplete="email"
+          error={errors.email}
+        />
 
         {/* Password */}
-        <div>
-          <label className="mb-2 block text-[14px] font-medium text-white/80">
-            Password
-          </label>
-
-          <div
-            className="
-              group
-              relative
-              flex
-              items-center
-              rounded-[13px]
-              border
-              border-white/[0.16]
-              bg-white/[0.055]
-              transition-all
-              duration-300
-              focus-within:border-[#ff806d]/70
-              focus-within:bg-white/[0.08]
-              focus-within:shadow-[0_0_25px_rgba(255,128,109,0.08)]
-            "
-          >
-            <LockKeyhole
-              size={18}
-              strokeWidth={1.7}
-              className="
-                ml-4
-                shrink-0
-                text-white/35
-                transition-colors
-                duration-300
-                group-focus-within:text-[#ff806d]
-              "
-            />
-
-            <input
-              name="password"
-              type={
-                showPassword
-                  ? "text"
-                  : "password"
-              }
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Create a password"
-              required
-              className="
-                w-full
-                bg-transparent
-                px-3
-                py-[13px]
-                pr-12
-                text-[15px]
-                text-white
-                outline-none
-                placeholder:text-white/35
-              "
-            />
-
+        <AuthInput
+          id="signup-password"
+          label="Password"
+          name="password"
+          type={showPassword ? "text" : "password"}
+          placeholder="Create a password (8+ characters)"
+          value={formData.password}
+          onChange={handleChange}
+          icon={LockKeyhole}
+          autoComplete="new-password"
+          error={errors.password}
+          rightElement={
             <button
               type="button"
-              onClick={() =>
-                setShowPassword(
-                  (previous) => !previous
-                )
-              }
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              onClick={() => setShowPassword((prev) => !prev)}
               className="
                 absolute
                 right-4
@@ -294,89 +195,35 @@ export default function SignupForm() {
               "
             >
               {showPassword ? (
-                <EyeOff
-                  size={18}
-                  strokeWidth={1.6}
-                />
+                <EyeOff size={18} strokeWidth={1.6} />
               ) : (
-                <Eye
-                  size={18}
-                  strokeWidth={1.6}
-                />
+                <Eye size={18} strokeWidth={1.6} />
               )}
             </button>
-          </div>
-        </div>
+          }
+        />
 
         {/* Confirm Password */}
-        <div>
-          <label className="mb-2 block text-[14px] font-medium text-white/80">
-            Confirm Password
-          </label>
-
-          <div
-            className="
-              group
-              relative
-              flex
-              items-center
-              rounded-[13px]
-              border
-              border-white/[0.16]
-              bg-white/[0.055]
-              transition-all
-              duration-300
-              focus-within:border-[#ff806d]/70
-              focus-within:bg-white/[0.08]
-              focus-within:shadow-[0_0_25px_rgba(255,128,109,0.08)]
-            "
-          >
-            <LockKeyhole
-              size={18}
-              strokeWidth={1.7}
-              className="
-                ml-4
-                shrink-0
-                text-white/35
-                transition-colors
-                duration-300
-                group-focus-within:text-[#ff806d]
-              "
-            />
-
-            <input
-              name="confirmPassword"
-              type={
-                showConfirmPassword
-                  ? "text"
-                  : "password"
-              }
-              value={
-                formData.confirmPassword
-              }
-              onChange={handleChange}
-              placeholder="Confirm your password"
-              required
-              className="
-                w-full
-                bg-transparent
-                px-3
-                py-[13px]
-                pr-12
-                text-[15px]
-                text-white
-                outline-none
-                placeholder:text-white/35
-              "
-            />
-
+        <AuthInput
+          id="signup-confirm-password"
+          label="Confirm Password"
+          name="confirmPassword"
+          type={showConfirmPassword ? "text" : "password"}
+          placeholder="Confirm your password"
+          value={formData.confirmPassword}
+          onChange={handleChange}
+          icon={LockKeyhole}
+          autoComplete="new-password"
+          error={errors.confirmPassword}
+          rightElement={
             <button
               type="button"
-              onClick={() =>
-                setShowConfirmPassword(
-                  (previous) => !previous
-                )
+              aria-label={
+                showConfirmPassword
+                  ? "Hide confirm password"
+                  : "Show confirm password"
               }
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
               className="
                 absolute
                 right-4
@@ -387,96 +234,52 @@ export default function SignupForm() {
               "
             >
               {showConfirmPassword ? (
-                <EyeOff
-                  size={18}
-                  strokeWidth={1.6}
-                />
+                <EyeOff size={18} strokeWidth={1.6} />
               ) : (
-                <Eye
-                  size={18}
-                  strokeWidth={1.6}
-                />
+                <Eye size={18} strokeWidth={1.6} />
               )}
             </button>
-          </div>
-        </div>
+          }
+        />
 
-        {/* Error */}
-        {error && (
-          <p className="text-center text-[13px] text-red-400">
-            {error}
-          </p>
+        {/* Form-level error banner */}
+        {errors.form && (
+          <div
+            role="alert"
+            className="
+              rounded-[10px]
+              border
+              border-red-400/30
+              bg-red-400/[0.08]
+              px-4
+              py-3
+              text-center
+              text-[13px]
+              text-red-400
+            "
+          >
+            {errors.form}
+          </div>
         )}
 
-        {/* Signup Button */}
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="
-            group
-            relative
-            w-full
-            overflow-hidden
-            rounded-[14px]
-            bg-black
-            py-[14px]
-            text-[16px]
-            font-bold
-            text-white
-            transition-all
-            duration-500
-            ease-out
-            hover:bg-[#ff806d]
-            hover:shadow-[0_8px_30px_rgba(255,128,109,0.28)]
-            active:scale-[0.985]
-            disabled:cursor-not-allowed
-            disabled:opacity-60
-          "
-        >
-          <span className="relative z-10">
-            {isLoading
-              ? "Creating Account..."
-              : "Create Account"}
-          </span>
-
-          <span
-            className="
-              pointer-events-none
-              absolute
-              -left-[100%]
-              top-0
-              h-full
-              w-[60%]
-              rotate-[15deg]
-              bg-white/[0.12]
-              blur-xl
-              transition-all
-              duration-700
-              group-hover:left-[120%]
-            "
-          />
-        </button>
+        {/* Create Account */}
+        <div className="pt-1">
+          <AuthButton type="submit" disabled={isLoading}>
+            {isLoading ? "Creating Account…" : "Create Account"}
+          </AuthButton>
+        </div>
       </form>
 
-      {/* Bottom Link */}
-      <div className="mt-6 text-center text-[14px] font-medium">
-        <span className="text-white/50">
-          Already have an account?{" "}
-        </span>
-
+      {/* Login link */}
+      <p className="mt-6 text-center text-[14px] font-medium">
+        <span className="text-white/50">Already have an account? </span>
         <Link
           href="/login"
-          className="
-            text-[#ff806d]
-            transition
-            duration-300
-            hover:text-[#ff9b8c]
-          "
+          className="text-[#ff806d] transition duration-300 hover:text-[#ff9b8c]"
         >
-          Login
+          Sign In
         </Link>
-      </div>
-
+      </p>
     </div>
   );
 }

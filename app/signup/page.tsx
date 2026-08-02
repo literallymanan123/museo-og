@@ -1,10 +1,10 @@
-import AuthCard from "@/components/auth/AuthCard";
+import SignupCard from "@/components/auth/SignupCard";
 import SignupForm from "@/components/auth/SignupForm";
 
 export default function SignupPage() {
   return (
-    <AuthCard>
+    <SignupCard>
       <SignupForm />
-    </AuthCard>
+    </SignupCard>
   );
-}
+}
