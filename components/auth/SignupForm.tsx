@@ -70,6 +70,16 @@ export default function SignupForm() {
       newErrors.password = "Password is required.";
     } else if (formData.password.length < 8) {
       newErrors.password = "Password must be at least 8 characters.";
+    } else {
+      const hasUpperCase = /[A-Z]/.test(formData.password);
+      const hasLowerCase = /[a-z]/.test(formData.password);
+      const hasNumbers = /\d/.test(formData.password);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(formData.password);
+
+      if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+        newErrors.password =
+          "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.";
+      }
     }
 
     if (!formData.confirmPassword) {

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/app/generated/prisma/client";
+import { Prisma } from "@prisma/client";
+import { createSession } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
@@ -45,9 +46,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Success — return safe user data ──────────────────────────────────────
-    // NOTE: In production you would set a session cookie or JWT here.
-    // For now we return the user data so the client can store it.
+    // ── Success — set session and return user data ───────────────────────────
+    await createSession(user.id, user.email);
+
     return NextResponse.json(
       {
         message: "Login successful.",

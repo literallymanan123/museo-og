@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { Prisma } from "@/app/generated/prisma/client";
+import { Prisma } from "@prisma/client";
+import { createSession } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
@@ -58,6 +59,23 @@ export async function POST(request: Request) {
       );
     }
 
+    // Stronger password validation
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+      return NextResponse.json(
+        {
+          message:
+            "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character.",
+          field: "password",
+        },
+        { status: 400 }
+      );
+    }
+
     // ── Hash the password ────────────────────────────────────────────────────
     const passwordHash = await bcrypt.hash(password, 12);
 
@@ -69,6 +87,9 @@ export async function POST(request: Request) {
         passwordHash,
       },
     });
+
+    // ── Success — set session and return safe user data ──────────────────────
+    await createSession(user.id, user.email);
 
     return NextResponse.json(
       {
